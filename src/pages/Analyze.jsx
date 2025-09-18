@@ -6,6 +6,8 @@ const Analyze = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const data = location.state; // This is now the backend response
+  
+  
 
   if (!data) {
     return (
@@ -90,7 +92,7 @@ const Analyze = () => {
                       <h3 className="text-xl font-medium text-gray-900">{data.plantName || "Unknown Plant"}</h3>
                       <p className="text-gray-600 text-sm">Scientific identification</p>
                     </div>
-                    <div className="text-sm text-gray-500">{data.confidence || "N/A"} confidence</div>
+                    <div className="text-sm text-gray-500">{data.plant || "N/A"} confidence</div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-5">

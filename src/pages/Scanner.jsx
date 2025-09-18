@@ -178,11 +178,11 @@ const Scanner = () => {
               </div>
 
               {/* Bad Example */}
-              <div className="bg-white rounded-xl shadow-md overflow-hidden border border-red-300">
+              <div className="bg-white  rounded-xl shadow-md overflow-hidden border border-red-300">
                 <img
                   src={LeaveImage}
                   alt="Bad Example"
-                  className="w-full h-48 sm:h-40 object-cover"
+                  className="w-full h-48 sm:h-40 object-cover blur-[2px]"
                 />
                 <div className="p-3 text-center">
                   <p className="text-red-600 font-semibold text-sm sm:text-base">❌ Bad Image</p>
