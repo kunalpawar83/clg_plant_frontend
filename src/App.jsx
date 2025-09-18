@@ -5,8 +5,7 @@ import Scanner from './pages/Scanner'
 import History from './pages/History'
 import Learning from './pages/Learning'
 import Analyze from './pages/Analyze'
-import Login from './pages/login'
-import Signup from './pages/Signup'
+
 
 const App = () => {
   return (
