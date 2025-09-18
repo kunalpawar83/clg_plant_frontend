@@ -5,7 +5,7 @@ import Header from "../components/Header";
 const Analyze = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const data = location.state; // ߑȠdata passed from Scan.jsx
+  const data = location.state; 
 
   if (!data) {
     return (
@@ -77,7 +77,7 @@ const Analyze = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 tracking-tight">
-            ߌѠAnalysis Results
+            🌿Analysis Results
           </h1>
           <p className="text-gray-600 mt-1">
             AI-powered plant health assessment
@@ -212,7 +212,7 @@ const Analyze = () => {
           <div className="p-6 rounded-2xl border bg-white shadow-sm hover:shadow-md transition">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-11 h-11 bg-orange-100 rounded-xl flex items-center justify-center text-xl">
-                ߌ͍
+                🌏
               </div>
               <span className="text-lg font-medium text-gray-800">
                 Regional Tips
