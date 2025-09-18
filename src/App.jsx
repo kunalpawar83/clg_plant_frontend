@@ -5,8 +5,7 @@ import Scanner from './pages/Scanner'
 import History from './pages/History'
 import Learning from './pages/Learning'
 import Analyze from './pages/Analyze'
-import Login from './pages/login'
-import Signup from './pages/Signup'
+
 
 const App = () => {
   return (
@@ -18,8 +17,6 @@ const App = () => {
         <Route path='/history' element ={<History/>}/>
         <Route path='/learning' element ={<Learning/>}/>
         <Route path='/analyze' element ={<Analyze/>}/>
-        <Route path='/login' element = {<Login/>}/>
-        <Route path='/signup'  element= {<Signup/>}/>
       </Routes>
     </>
   )
