@@ -1,6 +1,7 @@
 import { Camera, Sparkles, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import Background from '../../public/images/bg-image.jpg'
 
 const Hero = () => {
   return (
