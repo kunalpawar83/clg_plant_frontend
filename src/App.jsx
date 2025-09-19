@@ -7,6 +7,7 @@ import Learning from './pages/Learning'
 import Analyze from './pages/Analyze'
 
 
+
 const App = () => {
   return (
     <>
@@ -17,6 +18,7 @@ const App = () => {
         <Route path='/history' element ={<History/>}/>
         <Route path='/learning' element ={<Learning/>}/>
         <Route path='/analyze' element ={<Analyze/>}/>
+       
       </Routes>
     </>
   )

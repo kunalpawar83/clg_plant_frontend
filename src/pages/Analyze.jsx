@@ -22,7 +22,6 @@ const safeJSONParse = (s) => {
 
 const toList = (text) => {
   if (!text) return [];
-  // split on newlines, remove leading '- ' and empty lines
   return text
     .split(/\r?\n/)
     .map((t) => t.replace(/^\s*[-•]\s*/, "").trim())
@@ -41,7 +40,6 @@ const Analyze = () => {
   const navigate = useNavigate();
   const rawFromLocation = location.state || null;
 
-  // try sessionStorage fallback
   const [raw, setRaw] = useState(() => {
     if (rawFromLocation) return rawFromLocation;
     if (typeof window !== "undefined") {
@@ -50,32 +48,28 @@ const Analyze = () => {
     return null;
   });
 
-  // save to sessionStorage when navigated with state so reloads still work
   useEffect(() => {
     if (rawFromLocation && typeof window !== "undefined") {
       try {
         sessionStorage.setItem("analyzeData", JSON.stringify(rawFromLocation));
-      } catch (e) {
-        /* ignore */
-      }
+      } catch (e) {}
       setRaw(rawFromLocation);
     }
   }, [rawFromLocation]);
 
   const [lang, setLang] = useState(() => {
-    // if API tells language, default accordingly
-    if (raw?.language && raw.language.toLowerCase().includes("hind")) return "hindi";
+    if (raw?.otherLanguage?.language) return raw.otherLanguage.language.toLowerCase();
     return "english";
   });
 
   if (!raw) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen text-center">
-        <h1 className="text-2xl font-bold text-gray-800">No analysis data found</h1>
+      <div className="flex flex-col items-center justify-center h-screen text-center px-4">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">No analysis data found</h1>
         <p className="text-gray-600 mb-4">Please scan a plant first.</p>
         <button
           onClick={() => navigate("/scanner")}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition transform hover:scale-105"
         >
           Go to Scanner
         </button>
@@ -83,37 +77,44 @@ const Analyze = () => {
     );
   }
 
-  // Normalise / prepare data for UI
   const item = raw;
   const english = item.english || {
     description: item.description || "",
     prevention: item.prevention || "",
     treatments: item.treatments || "",
+    diseaseName: item.diseaseName || "",
   };
-  const hindi = item.otherLanguage || {
+  const other = item.otherLanguage || {
     description: item.description || "",
     prevention: item.prevention || "",
     treatments: item.treatments || "",
+    diseaseName: item.diseaseName || "",
   };
 
   const imageUrl = item.imageUrl || item.image || null;
   const diseaseTitle = item.diseaseTitle || item.diseaseName || "Unknown Disease";
-  const diseaseNameLocalized = lang === "hindi" ? (hindi.diseaseName || item.diseaseName || "") : (english.diseaseName || item.diseaseName || "");
+  const diseaseNameLocalized =
+    lang === other.language?.toLowerCase() ? other.diseaseName || english.diseaseName : english.diseaseName;
   const plant = item.plant || "Unknown Plant";
   const rawDisease = item.rawDisease || item.raw_disease || "—";
-  const detected = typeof item.status === "boolean" ? item.status : item.status ? true : false;
+  const detected = typeof item.status === "boolean" ? item.status : !!item.status;
   const observedAt = formatTs(item._ts || item.ts || item.timestamp || item.time);
 
-  // create lists
-  const preventionList = toList(lang === "hindi" ? (hindi.prevention || item.prevention) : (english.prevention || item.prevention));
-  const treatmentList = toList(lang === "hindi" ? (hindi.treatments || item.treatments) : (english.treatments || item.treatments));
-  const description = lang === "hindi" ? (hindi.description || english.description || "") : (english.description || hindi.description || "");
-  const regionTips = Array.isArray(item.regionTips) ? item.regionTips : Array.isArray(item.tips) ? item.tips : [];
+  const preventionList =
+    lang === other.language?.toLowerCase() ? toList(other.prevention || english.prevention) : toList(english.prevention);
+  const treatmentList =
+    lang === other.language?.toLowerCase() ? toList(other.treatments || english.treatments) : toList(english.treatments);
+  const description =
+    lang === other.language?.toLowerCase() ? other.description || english.description : english.description || other.description;
 
-  // care object is not in API — keep N/A defaults
+  const regionTips = Array.isArray(item.regionTips)
+    ? item.regionTips
+    : Array.isArray(item.tips)
+    ? item.tips
+    : [];
+
   const care = item.care || {};
 
-  // Simple Save-to-history (localStorage)
   const saveToHistory = () => {
     try {
       const history = safeJSONParse(localStorage.getItem("analyze_history")) || [];
@@ -126,33 +127,30 @@ const Analyze = () => {
   };
 
   const getHealthBadge = () => {
-    if (detected) return "bg-red-100 text-red-800 border border-red-200 px-3 py-1 rounded-md";
-    return "bg-green-100 text-green-800 border border-green-200 px-3 py-1 rounded-md";
+    if (detected) return "bg-red-100 text-red-800 border border-red-200 px-3 py-1 rounded-full font-semibold";
+    return "bg-green-100 text-green-800 border border-green-200 px-3 py-1 rounded-full font-semibold";
   };
 
   return (
     <>
       <Header />
-      <div className="min-h-screen mt-20 bg-gradient-to-b from-green-50 via-white to-green-50 py-12">
-        <div className="max-w-6xl mx-auto px-4">
-          {/* Top row */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-4">
+      <div className="min-h-screen mt-20 bg-gray-50 py-12 px-4 md:px-6 lg:px-12">
+        <div className="max-w-7xl mx-auto">
+          {/* Top Section */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">🌿 Analysis Results</h1>
-              <p className="text-gray-600 mt-1">AI-powered plant health assessment</p>
+              <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-1">🌿 Analysis Results</h1>
+              <p className="text-gray-600 text-lg">AI-powered plant health assessment</p>
             </div>
-
             <div className="flex gap-3 items-center">
               <select
                 value={lang}
                 onChange={(e) => setLang(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
-                aria-label="Choose language"
+                className="border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
               >
                 <option value="english">English</option>
-                <option value="hindi">हिंदी</option>
+                {other.language && <option value={other.language.toLowerCase()}>{other.language}</option>}
               </select>
-
               {[Share2, Download, MoreHorizontal].map((Icon, i) => (
                 <button
                   key={i}
@@ -165,12 +163,12 @@ const Analyze = () => {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Main column */}
+            {/* Main Column */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Disease / Identification card */}
-              <div className="p-6 rounded-2xl border bg-white shadow hover:shadow-lg transition">
-                <div className="flex items-center gap-4 mb-5">
-                  <div className="w-28 h-20 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+              {/* Disease Card */}
+              <div className="p-6 rounded-3xl border bg-white shadow-lg hover:shadow-2xl transition transform hover:scale-[1.01]">
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                  <div className="w-full md:w-36 h-28 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center shadow-inner">
                     <img
                       src={imageUrl || "/images/placeholder.png"}
                       alt={diseaseTitle}
@@ -178,14 +176,10 @@ const Analyze = () => {
                       onError={(e) => (e.currentTarget.src = "/images/placeholder.png")}
                     />
                   </div>
-
                   <div className="flex-1">
-                    <h2 className="text-xl font-bold text-gray-900">{diseaseTitle}</h2>
-                    {diseaseNameLocalized && (
-                      <p className="text-sm text-gray-600">{diseaseNameLocalized}</p>
-                    )}
-
-                    <div className="mt-2 flex flex-wrap gap-3 items-center">
+                    <h2 className="text-2xl font-bold text-gray-900">{diseaseTitle}</h2>
+                    {diseaseNameLocalized && <p className="text-gray-600 mt-1">{diseaseNameLocalized}</p>}
+                    <div className="mt-3 flex flex-wrap gap-3 items-center">
                       <div className={getHealthBadge()}>{detected ? "Diseased" : "Healthy"}</div>
                       <div className="text-sm text-gray-500">
                         Plant: <span className="font-medium text-gray-800">{plant}</span>
@@ -200,28 +194,32 @@ const Analyze = () => {
                   </div>
                 </div>
 
-                <div className="prose max-w-none text-gray-700 mb-5 leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>
+                <div className="prose max-w-none text-gray-700 mt-5 mb-6 leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>
                   {description || "No description available."}
                 </div>
 
                 {/* Prevention & Treatments */}
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="p-5 bg-green-50 rounded-xl border border-green-100 shadow-sm">
-                    <h4 className="font-semibold text-gray-900 mb-2">Prevention</h4>
+                  <div className="p-6 bg-green-50 rounded-2xl border border-green-200 shadow-sm hover:shadow-md transition transform hover:-translate-y-1">
+                    <h4 className="font-semibold text-gray-900 mb-2 text-lg">Prevention</h4>
                     {preventionList.length > 0 ? (
                       <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                        {preventionList.map((p, i) => <li key={i}>{p}</li>)}
+                        {preventionList.map((p, i) => (
+                          <li key={i}>{p}</li>
+                        ))}
                       </ul>
                     ) : (
                       <p className="text-sm text-gray-600">No prevention info provided.</p>
                     )}
                   </div>
 
-                  <div className="p-5 bg-yellow-50 rounded-xl border border-yellow-100 shadow-sm">
-                    <h4 className="font-semibold text-gray-900 mb-2">Treatments</h4>
+                  <div className="p-6 bg-yellow-50 rounded-2xl border border-yellow-200 shadow-sm hover:shadow-md transition transform hover:-translate-y-1">
+                    <h4 className="font-semibold text-gray-900 mb-2 text-lg">Treatments</h4>
                     {treatmentList.length > 0 ? (
                       <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                        {treatmentList.map((t, i) => <li key={i}>{t}</li>)}
+                        {treatmentList.map((t, i) => (
+                          <li key={i}>{t}</li>
+                        ))}
                       </ul>
                     ) : (
                       <p className="text-sm text-gray-600">No treatment info provided.</p>
@@ -231,20 +229,22 @@ const Analyze = () => {
               </div>
 
               {/* Care Recommendations */}
-              <div className="p-6 rounded-2xl border bg-white shadow hover:shadow-lg transition">
+              <div className="p-6 rounded-3xl border bg-white shadow-lg hover:shadow-2xl transition transform hover:scale-[1.01]">
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center text-xl">💧</div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-xl">💧</div>
                   <span className="text-lg font-semibold text-gray-900">Care Recommendations</span>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-5">
-                  {[{ icon: Droplets, label: "Watering", value: care.watering },
-                  { icon: Sun, label: "Sunlight", value: care.sunlight },
-                  { icon: Thermometer, label: "Temperature", value: care.temperature },
-                  { icon: Calendar, label: "Fertilizer", value: care.fertilizer }].map((c, i) => {
+                  {[
+                    { icon: Droplets, label: "Watering", value: care.watering },
+                    { icon: Sun, label: "Sunlight", value: care.sunlight },
+                    { icon: Thermometer, label: "Temperature", value: care.temperature },
+                    { icon: Calendar, label: "Fertilizer", value: care.fertilizer },
+                  ].map((c, i) => {
                     const Icon = c.icon;
                     return (
-                      <div key={i} className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                      <div key={i} className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition transform hover:-translate-y-1">
                         <div className="p-2 rounded-lg bg-white shadow-sm">
                           <Icon className="w-5 h-5 text-green-700" />
                         </div>
@@ -258,41 +258,52 @@ const Analyze = () => {
                 </div>
               </div>
 
-              {/* Immediate Actions */}
-              <div className="p-6 rounded-2xl border bg-white shadow hover:shadow-lg transition">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-11 h-11 bg-yellow-100 rounded-xl flex items-center justify-center text-xl">⚡</div>
-                  <span className="text-lg font-semibold text-gray-900">Immediate Actions</span>
-                </div>
-
-                <div className="space-y-3">
-                  {[...treatmentList.slice(0, 3), ...preventionList.slice(0, 3)].length > 0 ? (
-                    [...treatmentList.slice(0, 3), ...preventionList.slice(0, 3)].map((rec, idx) => (
-                      <div key={idx} className="flex items-start gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
-                        <div className="mt-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">{idx + 1}</div>
-                        <p className="text-gray-800">{rec}</p>
+              {/* Recommended Pesticides / Treatments */}
+              {detected && item.catalog?.found && item.catalog.data.length > 0 && (
+                <div className="p-6 rounded-3xl border bg-white shadow-lg">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">💊 Recommended Products</h2>
+                  
+                  <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
+                    {item.catalog.data.map((prod, idx) => (
+                      <div
+                        key={idx}
+                        className="relative w-full max-w-sm bg-white rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                      >
+                        <div className="p-4 flex flex-col items-center text-center">
+                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 shadow-inner">
+                            <span className="text-xl">{prod.ingredients.toLowerCase().includes('neem') ? '🌿' : '⚗️'}</span>
+                          </div>
+                          <h3 className="text-md font-bold text-gray-900 mb-0.5 truncate w-full px-2">{prod.product_name}</h3>
+                          <p className="text-xs text-gray-600 mb-0.5 truncate w-full px-2">Brand: {prod.brand_name}</p>
+                          <p className="text-xs text-gray-600 mb-1.5 truncate w-full px-2">Ingredients: {prod.ingredients}</p>
+                          
+                          <p className="text-lg font-semibold text-green-700">₹{prod.price.toLocaleString()}</p>
+                        </div>
+                        {/* Accent ribbon */}
+                        <div className={`absolute top-0 right-0 px-2 py-1 rounded-bl-lg text-xs font-bold text-white ${prod.ingredients.toLowerCase().includes('neem') ? 'bg-green-500' : 'bg-red-500'}`}>
+                          {prod.ingredients.toLowerCase().includes('neem') ? 'Organic' : 'Chemical'}
+                        </div>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-600">No specific actions recommended right now.</p>
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Sidebar */}
             <div className="space-y-8">
-              {/* Region-based Tips */}
-              <div className="p-6 rounded-2xl border bg-white shadow hover:shadow-lg transition">
+              {/* Region Tips */}
+              <div className="p-6 rounded-2xl border bg-white shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1">
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-11 h-11 bg-orange-100 rounded-xl flex items-center justify-center text-xl">🌏</div>
+                  <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-xl">🌏</div>
                   <span className="text-lg font-semibold text-gray-900">Regional Tips</span>
                 </div>
-
                 <div className="space-y-3">
                   {regionTips && regionTips.length ? (
                     regionTips.map((tip, i) => (
-                      <div key={i} className="text-sm text-gray-700 p-3 bg-orange-50 rounded-xl border border-orange-200">• {tip}</div>
+                      <div key={i} className="text-sm text-gray-700 p-3 bg-orange-50 rounded-xl border border-orange-200">
+                        <p>• {tip}</p>
+                      </div>
                     ))
                   ) : (
                     <p className="text-sm text-gray-600">No regional tips available</p>
@@ -301,14 +312,26 @@ const Analyze = () => {
               </div>
 
               {/* Save & Share */}
-              <div className="p-6 rounded-2xl border bg-white shadow space-y-4">
-                <button onClick={saveToHistory} className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-2 rounded-lg font-medium shadow hover:scale-[1.02] transition">Save to History</button>
-                <button className="w-full border border-green-300 text-green-700 hover:bg-green-50 py-2 rounded-lg font-medium transition">Share Report</button>
-                <button onClick={() => navigate("/scanner")} className="w-full border border-gray-300 hover:bg-gray-50 py-2 rounded-lg font-medium transition">Analyze Another Plant</button>
+              <div className="p-6 rounded-2xl border bg-white shadow-lg space-y-4 transition transform hover:-translate-y-1 hover:shadow-2xl">
+                <button
+                  onClick={saveToHistory}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-2 rounded-lg font-medium shadow hover:scale-[1.02] transition"
+                >
+                  Save to History
+                </button>
+                <button className="w-full border border-green-300 text-green-700 hover:bg-green-50 py-2 rounded-lg font-medium transition">
+                  Share Report
+                </button>
+                <button
+                  onClick={() => navigate("/scanner")}
+                  className="w-full border border-gray-300 hover:bg-gray-50 py-2 rounded-lg font-medium transition"
+                >
+                  Analyze Another Plant
+                </button>
               </div>
 
               {/* Quick Actions */}
-              <div className="p-6 rounded-2xl border bg-white shadow hover:shadow-lg transition">
+              <div className="p-6 rounded-2xl border bg-white shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1">
                 <div className="text-lg font-semibold mb-4 text-gray-900">Quick Actions</div>
                 <div className="space-y-3">
                   <button className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition">
@@ -327,8 +350,6 @@ const Analyze = () => {
               </div>
             </div>
           </div>
-
-         
         </div>
       </div>
     </>
