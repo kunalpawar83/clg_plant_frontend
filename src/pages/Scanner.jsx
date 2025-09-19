@@ -9,18 +9,46 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
-import LeaveImage from '../../public/images/leave-with-fungus.jpg';
-import Background from '../../public/images/bg-image.jpg';
+import Background from "../../public/images/bg-image.jpg";
+import Footer from "../components/Footer";
+import singleLiff from '../../public/images/singleLiff.jpg'
 
 const Scanner = () => {
   const [capturedImage, setCapturedImage] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [selectedAreas, setSelectedAreas] = useState([]);
+  const [selectedLanguage, setSelectedLanguage] = useState("");
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const navigate = useNavigate();
+
+  // Languages array
+  const indianLanguages = [
+    "Assamese",
+    "Bengali",
+    "Bodo",
+    "Dogri",
+    "Gujarati",
+    "Hindi",
+    "Kannada",
+    "Kashmiri",
+    "Konkani",
+    "Maithili",
+    "Malayalam",
+    "Manipuri",
+    "Marathi",
+    "Nepali",
+    "Odia",
+    "Punjabi",
+    "Sanskrit",
+    "Santali",
+    "Sindhi",
+    "Tamil",
+    "Telugu",
+    "Urdu",
+  ];
 
   // Open camera
   const openCamera = async () => {
@@ -70,61 +98,70 @@ const Scanner = () => {
     setSelectedAreas([...selectedAreas, { x, y }]);
   };
 
-  // Send image + selected areas to backend
+  // Send image + selected areas + language to backend
   const sendImageToBackend = async () => {
-  if (!capturedImage) return;
+    if (!capturedImage) return;
 
-  setIsAnalyzing(true);
-  setProgress(0);
+    setIsAnalyzing(true);
+    setProgress(0);
 
-  try {
-    const formData = new FormData();
+    try {
+      const formData = new FormData();
 
-    // Convert base64 to File if needed
-    let file;
-    if (typeof capturedImage === "string" && capturedImage.startsWith("data:image")) {
-      const res = await fetch(capturedImage);
-      const blob = await res.blob();
-      file = new File([blob], "plant.png", { type: blob.type });
-    } else {
-      file = capturedImage;
-    }
+      // Convert base64 to File if needed
+      let file;
+      if (typeof capturedImage === "string" && capturedImage.startsWith("data:image")) {
+        const res = await fetch(capturedImage);
+        const blob = await res.blob();
+        file = new File([blob], "plant.png", { type: blob.type });
+      } else {
+        file = capturedImage;
+      }
 
-    // Use exact field names backend expects
-    formData.append("image", file); // 'image' instead of 'plantImage'
-    formData.append("areas", JSON.stringify(selectedAreas)); // 'areas' instead of 'selectedAreas'
+      formData.append("image", file);
+      formData.append("areas", JSON.stringify(selectedAreas));
+      formData.append("language", selectedLanguage); // ✅ add language
 
-    // Optional: simulate progress
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(interval);
-          return prev;
+      // Save locally too
+      localStorage.setItem("preferredLanguage", selectedLanguage);
+
+      // Optional progress bar simulation
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(interval);
+            return prev;
+          }
+          return prev + 5;
+        });
+      }, 100);
+
+      const id = localStorage.getItem("userId");
+      formData.append("userId", id || "");
+
+      const response = await fetch(
+        "https://clg-plant-backend.vercel.app/gemini/id",
+        {
+          method: "POST",
+          body: formData,
         }
-        return prev + 5;
-      });
-    }, 100);
+      );
 
-    const response = await fetch("https://clg-plant-backend.vercel.app/gemini", {
-      method: "POST",
-      body: formData,
-    });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Server Error: ${text}`);
+      }
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Server Error: ${text}`);
+      const result = await response.json();
+      setProgress(100);
+      navigate("/analyze", { state: result });
+    } catch (error) {
+      console.error("Error sending image:", error);
+      alert(`Failed to send image: ${error.message}`);
+    } finally {
+      setIsAnalyzing(false);
     }
-
-    const result = await response.json();
-    setProgress(100);
-    navigate("/analyze", { state: result });
-  } catch (error) {
-    console.error("Error sending image:", error);
-    alert(`Failed to send image: ${error.message}`);
-  } finally {
-    setIsAnalyzing(false);
-  }
-};
+  };
 
   const retakePhoto = () => {
     setCapturedImage(null);
@@ -142,6 +179,7 @@ const Scanner = () => {
         ></div>
 
         <div className="max-w-2xl mx-auto px-4 space-y-8">
+          {/* Title */}
           <div className="text-center">
             <h1 className="text-4xl font-extrabold tracking-tight text-gray-800 mb-3">
               <span className="bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">
@@ -156,36 +194,61 @@ const Scanner = () => {
             </p>
           </div>
 
+          {/* ✅ Language Dropdown */}
+          <div className="w-full">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Language
+            </label>
+            <select
+              value={selectedLanguage}
+              onChange={(e) => setSelectedLanguage(e.target.value)}
+              className="w-full rounded-lg border border-green-300 bg-white px-4 py-2 text-green-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+            >
+              <option value="">-- Choose a language --</option>
+              {indianLanguages.map((lang, idx) => (
+                <option key={idx} value={lang}>
+                  {lang}
+                </option>
+              ))}
+            </select>
+            {selectedLanguage && (
+              <p className="mt-2 text-green-700 text-sm">
+                ✅ Selected: <span className="font-semibold">{selectedLanguage}</span>
+              </p>
+            )}
+          </div>
+
           {/* Good vs Bad Example Top */}
           <div className="bg-gradient-to-r from-green-100 to-green-50 rounded-3xl p-6 shadow-lg border border-green-200">
             <h3 className="text-xl sm:text-2xl font-bold text-green-800 mb-4 text-center">
               📷 How to Take Plant Photos
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Good Example */}
               <div className="bg-white rounded-xl shadow-md overflow-hidden border border-green-300">
                 <img
-                  src={LeaveImage}
+                  src={singleLiff}
                   alt="Good Example"
                   className="w-full h-48 sm:h-40 object-cover"
                 />
                 <div className="p-3 text-center">
-                  <p className="text-green-600 font-semibold text-sm sm:text-base">✅ Good Image</p>
+                  <p className="text-green-600 font-semibold text-sm sm:text-base">
+                    ✅ Good Image
+                  </p>
                   <p className="text-xs sm:text-sm text-green-700 mt-1">
-                    Bright, focused, shows multiple leaves.
+                    Bright, focused, shows single leaves.
                   </p>
                 </div>
               </div>
-
-              {/* Bad Example */}
-              <div className="bg-white  rounded-xl shadow-md overflow-hidden border border-red-300">
+              <div className="bg-white rounded-xl shadow-md overflow-hidden border border-red-300">
                 <img
-                  src={LeaveImage}
+                  src={singleLiff}
                   alt="Bad Example"
                   className="w-full h-48 sm:h-40 object-cover blur-[2px]"
                 />
                 <div className="p-3 text-center">
-                  <p className="text-red-600 font-semibold text-sm sm:text-base">❌ Bad Image</p>
+                  <p className="text-red-600 font-semibold text-sm sm:text-base">
+                    ❌ Bad Image
+                  </p>
                   <p className="text-xs sm:text-sm text-red-700 mt-1">
                     Blurry, dark, or poorly framed.
                   </p>
@@ -219,7 +282,6 @@ const Scanner = () => {
                     <Camera className="w-5 h-5 mr-2" />
                     Open Camera
                   </button>
-
                   <button
                     onClick={capturePhoto}
                     className="flex-1 bg-green-700 text-white py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center text-base font-medium"
@@ -227,7 +289,6 @@ const Scanner = () => {
                     <Check className="w-5 h-5 mr-2" />
                     Capture
                   </button>
-
                   <label className="flex-1 flex items-center justify-center border border-green-300 text-green-700 hover:bg-green-50 py-3 rounded-xl transition-all duration-300 cursor-pointer font-medium">
                     <Upload className="w-5 h-5 mr-2" />
                     Upload
@@ -250,7 +311,6 @@ const Scanner = () => {
                     className="w-full aspect-video object-cover cursor-crosshair"
                     onClick={handleImageClick}
                   />
-
                   {selectedAreas.map((area, idx) => (
                     <div
                       key={idx}
@@ -262,7 +322,6 @@ const Scanner = () => {
                       }}
                     />
                   ))}
-
                   {isAnalyzing && (
                     <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white px-4">
                       <Loader2 className="w-12 h-12 animate-spin mb-3" />
@@ -279,7 +338,6 @@ const Scanner = () => {
                     </div>
                   )}
                 </div>
-
                 <div className="flex gap-4">
                   <button
                     onClick={retakePhoto}
@@ -288,10 +346,14 @@ const Scanner = () => {
                     <RotateCcw className="w-5 h-5 mr-2" />
                     Retake
                   </button>
-
                   <button
                     onClick={sendImageToBackend}
-                    className="flex-1 flex items-center justify-center bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3 rounded-xl shadow-md hover:shadow-lg transition-all text-base font-medium"
+                    disabled={!selectedLanguage} // ✅ prevent without language
+                    className={`flex-1 flex items-center justify-center py-3 rounded-xl text-base font-medium shadow-md hover:shadow-lg transition-all ${
+                      selectedLanguage
+                        ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700"
+                        : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    }`}
                   >
                     <Check className="w-5 h-5 mr-2" />
                     Analyze
@@ -316,6 +378,7 @@ const Scanner = () => {
           </div>
         </div>
       </div>
+      <Footer />
     </>
   );
 };
